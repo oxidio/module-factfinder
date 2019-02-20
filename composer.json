@@ -12,6 +12,7 @@
     "php": ">=7.1"
   },
   "require-dev": {
+    "oxidio/project": "dev-master"
   },
   "autoload": {
     "psr-4": {
@@ -23,14 +24,10 @@
   },
   "extra": {
     "oxideshop": {
-      "blacklist-filter": [
-        "bin/**/*.*",
-        "config/**/*.*",
-        "src/**/*.*",
-        "LICENSE",
-        "README.md"
+      "whitelist-filter": [
+        "metadata.php"
       ],
-      "target-directory": "io/factfinder"
+      "target-directory": "oxidio/factfinder"
     },
     "di": "config/di.php",
     "di-config": {

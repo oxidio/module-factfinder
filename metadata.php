@@ -3,7 +3,7 @@
 $sMetadataVersion = '2.1';
 
 $aModule = [
-    'id'          => 'io/factfinder',
+    'id'          => 'oxidio/factfinder',
     'title'       => 'oxidio/module-factfinder',
     'author'      => 'oxidio',
     'url'         => 'https://github.com/oxidio/module-factfinder',

@@ -1,0 +1,36 @@
+#!/usr/bin/env php
+<?php
+
+use fn\Cli;
+use FACTFinder\ {
+    Adapter,
+    Core
+};
+
+call_user_func(require __DIR__ . '/../vendor/autoload.php', function() {
+    $cli = new Cli(fn\di([
+        'cli.name'    => 'ff',
+        'cli.version' => '0.0.1',
+
+        Core\ConfigurationInterface::class => function() {
+            return new Core\ManualConfiguration(['channel' => 'foo']);
+        },
+
+        Adapter\Suggest::class => function(Core\ConfigurationInterface $config) {
+            return new Adapter\Suggest(null, $config, ...[]);
+        },
+    ]));
+
+    $cli->command('config', function(Cli\IO $io, Core\ConfigurationInterface $config) {
+        $io->table(['entry', 'value'], [
+            ['channel', $config->getChannel()],
+        ]);
+    });
+
+    $cli->command('suggest', function(Cli\IO $io) {
+        $io->error('todo: implement it');
+    });
+
+
+    $cli();
+});

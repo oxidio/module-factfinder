@@ -4,7 +4,10 @@
 use fn\Cli;
 use FACTFinder\ {
     Adapter,
-    Core
+    Core,
+    Core\Client,
+    Core\Server,
+    Util
 };
 
 call_user_func(require __DIR__ . '/../vendor/autoload.php', function() {
@@ -12,12 +15,72 @@ call_user_func(require __DIR__ . '/../vendor/autoload.php', function() {
         'cli.name'    => 'ff',
         'cli.version' => '0.0.1',
 
+        Util\LoggerInterface::class => DI\create(Util\NullLogger::class),
+
         Core\ConfigurationInterface::class => function() {
-            return new Core\ManualConfiguration(['channel' => 'foo']);
+            return new Core\ManualConfiguration([
+                'channel'                   => '',
+                'serverMappings'            => [],
+                'ignoredServerParameters'   => [],
+                'whitelistServerParameters' => [],
+                'requiredServerParameters'  => [],
+            ]);
         },
 
-        Adapter\Suggest::class => function(Core\ConfigurationInterface $config) {
-            return new Adapter\Suggest(null, $config, ...[]);
+        Core\AbstractEncodingConverter::class => function(Util\LoggerInterface $logger, Core\ConfigurationInterface $config) {
+            if (extension_loaded('iconv')) {
+                return new Core\IConvEncodingConverter(get_class($logger), $config);
+            }
+            if (function_exists('utf8_encode') && function_exists('utf8_decode')) {
+                return new Core\Utf8EncodingConverter(get_class($logger), $config);
+            }
+            return null;
+        },
+
+        Util\CurlInterface::class => DI\create(Util\Curl::class),
+
+        Client\RequestParser::class => function(
+            Util\LoggerInterface $logger,
+            Core\ConfigurationInterface $config,
+            Core\AbstractEncodingConverter $converter = null
+        ) {
+            return new Client\RequestParser(get_class($logger), $config, $converter);
+        },
+
+        Util\Parameters::class => DI\factory(function(Client\RequestParser $parser) {
+            return $parser->getRequestParameters();
+        }),
+
+        Server\RequestFactoryInterface::class => function(
+            Util\LoggerInterface $logger,
+            Core\ConfigurationInterface $config,
+            Util\Parameters $params,
+            Util\CurlInterface $curl
+        ) {
+            return new Server\MultiCurlRequestFactory(get_class($logger), $config, $params, $curl);
+        },
+
+        Server\Request::class => DI\factory(function(Server\RequestFactoryInterface $factory) {
+            return $factory->getRequest();
+        }),
+
+        Client\UrlBuilder::class => function(
+            Util\LoggerInterface $logger,
+            Core\ConfigurationInterface $config,
+            Client\RequestParser $parser,
+            Core\AbstractEncodingConverter $converter = null
+        ) {
+            return new Client\UrlBuilder(get_class($logger), $config, $parser, $converter);
+        },
+
+        Adapter\Suggest::class => function(
+            Util\LoggerInterface $logger,
+            Core\ConfigurationInterface $config,
+            Server\Request $request,
+            Client\UrlBuilder $builder,
+            Core\AbstractEncodingConverter $converter = null
+        ) {
+            return new Adapter\Suggest(get_class($logger), $config, $request, $builder, $converter);
         },
     ]));
 
@@ -27,8 +90,8 @@ call_user_func(require __DIR__ . '/../vendor/autoload.php', function() {
         ]);
     });
 
-    $cli->command('suggest', function(Cli\IO $io) {
-        $io->error('todo: implement it');
+    $cli->command('suggest', function(Cli\IO $io, Adapter\Suggest $suggest) {
+        $io->success(count($suggest->getSuggestions()));
     });
 
 

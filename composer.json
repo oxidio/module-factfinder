@@ -1,6 +1,7 @@
 {
   "name": "oxidio/module-factfinder",
   "type": "oxideshop-module",
+  "description": "factfinder module for oxid shop",
   "license": "MIT",
   "keywords": [
     "fact finder",

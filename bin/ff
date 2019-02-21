@@ -19,11 +19,41 @@ call_user_func(require __DIR__ . '/../vendor/autoload.php', function() {
 
         Core\ConfigurationInterface::class => function() {
             return new Core\ManualConfiguration([
-                'channel'                   => '',
-                'serverMappings'            => [],
-                'ignoredServerParameters'   => [],
-                'whitelistServerParameters' => [],
-                'requiredServerParameters'  => [],
+                    'serverMappings'            => [
+                            'foo' => 'bar',
+                        'bar' => ['foo', 'bar']
+                    ],
+                    'ignoredServerParameters'   => [],
+                    'whitelistServerParameters' => [],
+                    'requiredServerParameters'  => [],
+
+                    'clientMappings'            => [],
+                    'ignoredClientParameters'   => [],
+                    'whitelistClientParameters' => [],
+                    'requiredClientParameters'  => [],
+
+                    'debug'                     => true,
+                    'requestProtocol'           => 'https',
+                    'serverAddress'             => 'demoshop.fact-finder.de',
+                    'port'                      => '443',
+                    'context'                   => 'FACT-Finder',
+                    'channel'                   => 'fahrrad-de',
+                    'language'                  => 'de',
+                    'authenticationType'        => Core\ManualConfiguration::SIMPLE_AUTHENTICATION,
+                    'userName'                  => 'user',
+                    'password'                  => 'userpw',
+                    'authenticationPrefix'      => 'FACT-FINDER',
+                    'authenticationPostfix'     => 'FACT-FINDER',
+                    'defaultConnectTimeout'     => '2',
+                    'defaultTimeout'            => '4',
+                    'suggestConnectTimeout'     => '2',
+                    'suggestTimeout'            => '2',
+                    'trackingConnectTimeout'    => '1',
+                    'trackingTimeout'           => '2',
+                    'importConnectTimeout'      => '10',
+                    'importTimeout'             => '360',
+                    'pageContentEncoding'       => 'UTF-8',
+                    'clientUrlEncoding'         => 'UTF-8',
             ]);
         },
 
@@ -82,12 +112,106 @@ call_user_func(require __DIR__ . '/../vendor/autoload.php', function() {
         ) {
             return new Adapter\Suggest(get_class($logger), $config, $request, $builder, $converter);
         },
+
+        Adapter\Search::class => function(
+            Util\LoggerInterface $logger,
+            Core\ConfigurationInterface $config,
+            Server\Request $request,
+            Client\UrlBuilder $builder,
+            Core\AbstractEncodingConverter $converter = null
+        ) {
+            return new Adapter\Search(get_class($logger), $config, $request, $builder, $converter);
+        },
+
+
+
+
     ]));
 
+
     $cli->command('config', function(Cli\IO $io, Core\ConfigurationInterface $config) {
-        $io->table(['entry', 'value'], [
-            ['channel', $config->getChannel()],
-        ]);
+        $methods = [
+            'isDebugEnabled',
+            'getRequestProtocol',
+            'getServerAddress',
+            'getServerPort',
+            'getContext',
+            'getChannel',
+            'getLanguage',
+            'isHttpAuthenticationType',
+            'isSimpleAuthenticationType',
+            'isAdvancedAuthenticationType',
+            'getUserName',
+            'getPassword',
+            'getAuthenticationPrefix',
+            'getAuthenticationPostfix',
+            'getClientMappings',
+            'getServerMappings',
+            'getIgnoredClientParameters',
+            'getIgnoredServerParameters',
+            'getWhitelistClientParameters',
+            'getWhitelistServerParameters',
+            'getRequiredClientParameters',
+            'getRequiredServerParameters',
+            'getDefaultConnectTimeout',
+            'getDefaultTimeout',
+            'getSuggestConnectTimeout',
+            'getSuggestTimeout',
+            'getTrackingConnectTimeout',
+            'getTrackingTimeout',
+            'getImportConnectTimeout',
+            'getImportTimeout',
+            'getPageContentEncoding',
+            'getClientUrlEncoding',
+        ];
+
+        $rows = [];
+        foreach ($methods as $method) {
+            foreach ((array)$config->$method() as $key => $value) {
+                $rows[] = [$method, is_numeric($key) ? '' : $key, json_encode($value, JSON_PRETTY_PRINT)];
+                $method = '';
+            }
+        }
+
+        $io->table(['method', 'key', 'value'], $rows);
+
+
+
+
+//        $io->table(['entry', 'value'], [
+//            ['isDebugEnabled', $config->isDebugEnabled()],
+//            ['getRequestProtocol', $config->getRequestProtocol()],
+//            ['getServerAddress', $config->getServerAddress()],
+//            ['getServerPort', $config->getServerPort()],
+//            ['getContext', $config->getContext()],
+//            ['getChannel', $config->getChannel()],
+//            ['getLanguage', $config->getLanguage()],
+//            ['isHttpAuthenticationType', $config->isHttpAuthenticationType()],
+//            ['isSimpleAuthenticationType', $config->isSimpleAuthenticationType()],
+//            ['isAdvancedAuthenticationType', $config->isAdvancedAuthenticationType()],
+//            ['getUserName', $config->getUserName()],
+//            ['getPassword', $config->getPassword()],
+//            ['getAuthenticationPrefix', $config->getAuthenticationPrefix()],
+//            ['getAuthenticationPostfix', $config->getAuthenticationPostfix()],
+//            ['getClientMappings', $config->getClientMappings()],
+//            ['getServerMappings', $config->getServerMappings()],
+//            ['getIgnoredClientParameters', $config->getIgnoredClientParameters()],
+//            ['getIgnoredServerParameters', $config->getIgnoredServerParameters()],
+//            ['getWhitelistClientParameters', $config->getWhitelistClientParameters()],
+//            ['getWhitelistServerParameters', $config->getWhitelistServerParameters()],
+//            ['getRequiredClientParameters', $config->getRequiredClientParameters()],
+//            ['getRequiredServerParameters', $config->getRequiredServerParameters()],
+//            ['getDefaultConnectTimeout', $config->getDefaultConnectTimeout()],
+//            ['getDefaultTimeout', $config->getDefaultTimeout()],
+//            ['getSuggestConnectTimeout', $config->getSuggestConnectTimeout()],
+//            ['getSuggestTimeout', $config->getSuggestTimeout()],
+//            ['getTrackingConnectTimeout', $config->getTrackingConnectTimeout()],
+//            ['getTrackingTimeout', $config->getTrackingTimeout()],
+//            ['getImportConnectTimeout', $config->getImportConnectTimeout()],
+//            ['getImportTimeout', $config->getImportTimeout()],
+//            ['getPageContentEncoding', $config->getPageContentEncoding()],
+//            ['getClientUrlEncoding', $config->getClientUrlEncoding()],
+//        ]);
     });
 
     $cli->command('suggest', function(Cli\IO $io, Adapter\Suggest $suggest) {

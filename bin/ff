@@ -4,220 +4,33 @@
 use fn\Cli;
 use FACTFinder\ {
     Adapter,
-    Core,
-    Core\Client,
-    Core\Server,
-    Util
+    Core
 };
 
 call_user_func(require __DIR__ . '/../vendor/autoload.php', function() {
-    $cli = new Cli(fn\di([
+    $cli = new Cli(fn\di()->container(__DIR__ . '/../config/di-ff.php', [
         'cli.name'    => 'ff',
         'cli.version' => '0.0.1',
 
-        Util\LoggerInterface::class => DI\create(Util\NullLogger::class),
-
-        Core\ConfigurationInterface::class => function() {
-            return new Core\ManualConfiguration([
-                    'serverMappings'            => [
-                            'foo' => 'bar',
-                        'bar' => ['foo', 'bar']
-                    ],
-                    'ignoredServerParameters'   => [],
-                    'whitelistServerParameters' => [],
-                    'requiredServerParameters'  => [],
-
-                    'clientMappings'            => [],
-                    'ignoredClientParameters'   => [],
-                    'whitelistClientParameters' => [],
-                    'requiredClientParameters'  => [],
-
-                    'debug'                     => true,
-                    'requestProtocol'           => 'https',
-                    'serverAddress'             => 'demoshop.fact-finder.de',
-                    'port'                      => '443',
-                    'context'                   => 'FACT-Finder',
-                    'channel'                   => 'fahrrad-de',
-                    'language'                  => 'de',
-                    'authenticationType'        => Core\ManualConfiguration::SIMPLE_AUTHENTICATION,
-                    'userName'                  => 'user',
-                    'password'                  => 'userpw',
-                    'authenticationPrefix'      => 'FACT-FINDER',
-                    'authenticationPostfix'     => 'FACT-FINDER',
-                    'defaultConnectTimeout'     => '2',
-                    'defaultTimeout'            => '4',
-                    'suggestConnectTimeout'     => '2',
-                    'suggestTimeout'            => '2',
-                    'trackingConnectTimeout'    => '1',
-                    'trackingTimeout'           => '2',
-                    'importConnectTimeout'      => '10',
-                    'importTimeout'             => '360',
-                    'pageContentEncoding'       => 'UTF-8',
-                    'clientUrlEncoding'         => 'UTF-8',
-            ]);
-        },
-
-        Core\AbstractEncodingConverter::class => function(Util\LoggerInterface $logger, Core\ConfigurationInterface $config) {
-            if (extension_loaded('iconv')) {
-                return new Core\IConvEncodingConverter(get_class($logger), $config);
-            }
-            if (function_exists('utf8_encode') && function_exists('utf8_decode')) {
-                return new Core\Utf8EncodingConverter(get_class($logger), $config);
-            }
-            return null;
-        },
-
-        Util\CurlInterface::class => DI\create(Util\Curl::class),
-
-        Client\RequestParser::class => function(
-            Util\LoggerInterface $logger,
-            Core\ConfigurationInterface $config,
-            Core\AbstractEncodingConverter $converter = null
-        ) {
-            return new Client\RequestParser(get_class($logger), $config, $converter);
-        },
-
-        Util\Parameters::class => DI\factory(function(Client\RequestParser $parser) {
-            return $parser->getRequestParameters();
+        Core\ConfigurationInterface::class => DI\decorate(function(Core\ConfigurationInterface $config) {
+            unset($_GET);
+            return $config;
         }),
-
-        Server\RequestFactoryInterface::class => function(
-            Util\LoggerInterface $logger,
-            Core\ConfigurationInterface $config,
-            Util\Parameters $params,
-            Util\CurlInterface $curl
-        ) {
-            return new Server\MultiCurlRequestFactory(get_class($logger), $config, $params, $curl);
-        },
-
-        Server\Request::class => DI\factory(function(Server\RequestFactoryInterface $factory) {
-            return $factory->getRequest();
-        }),
-
-        Client\UrlBuilder::class => function(
-            Util\LoggerInterface $logger,
-            Core\ConfigurationInterface $config,
-            Client\RequestParser $parser,
-            Core\AbstractEncodingConverter $converter = null
-        ) {
-            return new Client\UrlBuilder(get_class($logger), $config, $parser, $converter);
-        },
-
-        Adapter\Suggest::class => function(
-            Util\LoggerInterface $logger,
-            Core\ConfigurationInterface $config,
-            Server\Request $request,
-            Client\UrlBuilder $builder,
-            Core\AbstractEncodingConverter $converter = null
-        ) {
-            return new Adapter\Suggest(get_class($logger), $config, $request, $builder, $converter);
-        },
-
-        Adapter\Search::class => function(
-            Util\LoggerInterface $logger,
-            Core\ConfigurationInterface $config,
-            Server\Request $request,
-            Client\UrlBuilder $builder,
-            Core\AbstractEncodingConverter $converter = null
-        ) {
-            return new Adapter\Search(get_class($logger), $config, $request, $builder, $converter);
-        },
-
-
-
 
     ]));
 
-
     $cli->command('config', function(Cli\IO $io, Core\ConfigurationInterface $config) {
-        $methods = [
-            'isDebugEnabled',
-            'getRequestProtocol',
-            'getServerAddress',
-            'getServerPort',
-            'getContext',
-            'getChannel',
-            'getLanguage',
-            'isHttpAuthenticationType',
-            'isSimpleAuthenticationType',
-            'isAdvancedAuthenticationType',
-            'getUserName',
-            'getPassword',
-            'getAuthenticationPrefix',
-            'getAuthenticationPostfix',
-            'getClientMappings',
-            'getServerMappings',
-            'getIgnoredClientParameters',
-            'getIgnoredServerParameters',
-            'getWhitelistClientParameters',
-            'getWhitelistServerParameters',
-            'getRequiredClientParameters',
-            'getRequiredServerParameters',
-            'getDefaultConnectTimeout',
-            'getDefaultTimeout',
-            'getSuggestConnectTimeout',
-            'getSuggestTimeout',
-            'getTrackingConnectTimeout',
-            'getTrackingTimeout',
-            'getImportConnectTimeout',
-            'getImportTimeout',
-            'getPageContentEncoding',
-            'getClientUrlEncoding',
-        ];
-
-        $rows = [];
-        foreach ($methods as $method) {
-            foreach ((array)$config->$method() as $key => $value) {
-                $rows[] = [$method, is_numeric($key) ? '' : $key, json_encode($value, JSON_PRETTY_PRINT)];
-                $method = '';
-            }
-        }
-
-        $io->table(['method', 'key', 'value'], $rows);
-
-
-
-
-//        $io->table(['entry', 'value'], [
-//            ['isDebugEnabled', $config->isDebugEnabled()],
-//            ['getRequestProtocol', $config->getRequestProtocol()],
-//            ['getServerAddress', $config->getServerAddress()],
-//            ['getServerPort', $config->getServerPort()],
-//            ['getContext', $config->getContext()],
-//            ['getChannel', $config->getChannel()],
-//            ['getLanguage', $config->getLanguage()],
-//            ['isHttpAuthenticationType', $config->isHttpAuthenticationType()],
-//            ['isSimpleAuthenticationType', $config->isSimpleAuthenticationType()],
-//            ['isAdvancedAuthenticationType', $config->isAdvancedAuthenticationType()],
-//            ['getUserName', $config->getUserName()],
-//            ['getPassword', $config->getPassword()],
-//            ['getAuthenticationPrefix', $config->getAuthenticationPrefix()],
-//            ['getAuthenticationPostfix', $config->getAuthenticationPostfix()],
-//            ['getClientMappings', $config->getClientMappings()],
-//            ['getServerMappings', $config->getServerMappings()],
-//            ['getIgnoredClientParameters', $config->getIgnoredClientParameters()],
-//            ['getIgnoredServerParameters', $config->getIgnoredServerParameters()],
-//            ['getWhitelistClientParameters', $config->getWhitelistClientParameters()],
-//            ['getWhitelistServerParameters', $config->getWhitelistServerParameters()],
-//            ['getRequiredClientParameters', $config->getRequiredClientParameters()],
-//            ['getRequiredServerParameters', $config->getRequiredServerParameters()],
-//            ['getDefaultConnectTimeout', $config->getDefaultConnectTimeout()],
-//            ['getDefaultTimeout', $config->getDefaultTimeout()],
-//            ['getSuggestConnectTimeout', $config->getSuggestConnectTimeout()],
-//            ['getSuggestTimeout', $config->getSuggestTimeout()],
-//            ['getTrackingConnectTimeout', $config->getTrackingConnectTimeout()],
-//            ['getTrackingTimeout', $config->getTrackingTimeout()],
-//            ['getImportConnectTimeout', $config->getImportConnectTimeout()],
-//            ['getImportTimeout', $config->getImportTimeout()],
-//            ['getPageContentEncoding', $config->getPageContentEncoding()],
-//            ['getClientUrlEncoding', $config->getClientUrlEncoding()],
-//        ]);
+        $rows = fn\traverse(Oxidio\FF\CONFIG, function($default, $name) use($config) {
+            return [$name, json_encode($config->getCustomValue($name)), json_encode($default)];
+        });
+        $io->table(['entry', 'value', 'default'], $rows);
     });
 
-    $cli->command('suggest', function(Cli\IO $io, Adapter\Suggest $suggest) {
-        $io->success(count($suggest->getSuggestions()));
-    });
-
+    $cli->command('search', function(Cli\IO $io, Adapter\Search $adapter, string $query, string $sid = '') {
+        $adapter->setQuery($query);
+        $adapter->setSid($sid);
+        $io->success(count($adapter->getResult()));
+    }, ['query']);
 
     $cli();
 });

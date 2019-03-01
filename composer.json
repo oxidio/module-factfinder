@@ -2,7 +2,7 @@
   "name": "oxidio/module-factfinder",
   "type": "oxideshop-module",
   "description": "factfinder module for oxid shop",
-  "license": "MIT",
+  "license": "GPL-3.0",
   "keywords": [
     "fact finder",
     "module",
@@ -17,7 +17,7 @@
   },
   "autoload": {
     "psr-4": {
-      "Oxidio\\": ["src/"]
+      "Oxidio\\": ["src/Oxidio/"]
     },
     "files": [
       "src/autoload-files.php"
@@ -30,9 +30,5 @@
       ],
       "target-directory": "oxidio/factfinder"
     },
-    "di": "config/di.php",
-    "di-config": {
-      "wiring": "reflection"
-    }
   }
 }

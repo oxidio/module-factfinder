@@ -1,4 +1,7 @@
-<?php /** @noinspection SpellCheckingInspection */
+<?php
+/**
+ * Copyright (C) oxidio. See LICENSE file for license details.
+ */
 
 namespace {
     call_user_func(function (...$files) {
